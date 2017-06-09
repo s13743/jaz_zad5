@@ -1,7 +1,7 @@
 package rest.services;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import java.util.List;
+import static java.lang.Character.isUpperCase;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -19,6 +19,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.Produces;
+
+import org.apache.commons.validator.routines.EmailValidator;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import domain.Person;
 
@@ -53,15 +56,15 @@ public class PersonResource {
 	
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	public Response add(Person p) {
+	public Response add(Person person) {
 		
-		if (p.getAge() <= 18) {
+		if (!personValidator(person)) {
 			return Response.status(404).build();
 		}
 		
-		em.persist(p);
+		em.persist(person);
 		
-		return Response.ok(p.getId()).build();
+		return Response.ok(person.getId()).build();
 	}
 	
 	@PUT
@@ -69,9 +72,9 @@ public class PersonResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response update(@PathParam("id") int id, Person p) {
 		
-		Person result = em.createNamedQuery("person.id", Person.class).setParameter("personId", id).getSingleResult();
+		Person result = getPersonById(id);
 		
-		if (result == null) {
+		if (result == null || !personValidator(p)) {
 			return Response.status(404).build();
 		}
 		
@@ -89,7 +92,7 @@ public class PersonResource {
 	@Path("/{id}")
 	public Response delete(@PathParam("id") int id) {
 		
-		Person result = em.createNamedQuery("person.id", Person.class).setParameter("personId", id).getSingleResult();
+		Person result = getPersonById(id);
 		
 		if (result == null) {
 			return Response.status(404).build();
@@ -98,5 +101,31 @@ public class PersonResource {
 		em.remove(result);
 		
 		return Response.ok().build();
-	} 
+	}
+	
+	private Person getPersonById(int id) {
+		return em.createNamedQuery("person.id", Person.class).setParameter("personId", id).getSingleResult();
+	}
+	
+	private boolean personValidator(Person p) {
+		
+		String firstName = p.getFirstName();
+		String lastName = p.getLastName();
+		
+		char firstLetterOffirstName = firstName.charAt(0);
+		char firstLetterOflastName = lastName.charAt(0);
+		
+		String firstandLastNameWithoutFirstLetter = firstName.substring(1) + lastName.substring(1);
+		
+		int age = p.getAge();
+		String email = p.getEmail();
+		
+		if (isNullOrEmpty(firstName) || isNullOrEmpty(lastName) || isNullOrEmpty(email) || firstName.length() < 2 || lastName.length() < 2 ||
+				firstName.length() > 20 || lastName.length() > 20 || !firstandLastNameWithoutFirstLetter.chars().allMatch(Character::isLowerCase) ||
+				!isUpperCase(firstLetterOffirstName) || !isUpperCase(firstLetterOflastName) || age < 18 || age > 110 || !EmailValidator.getInstance().isValid(email)) {
+			return false;
+		}
+
+		return true;
+	}
 }
