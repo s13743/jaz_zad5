@@ -7,7 +7,6 @@ import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -15,10 +14,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 
 import org.apache.commons.validator.routines.EmailValidator;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -31,25 +30,16 @@ public class PersonResource {
 	@PersistenceContext
 	EntityManager em;
 	
-	@Context
-	private HttpServletRequest httpRequest;
-	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Person> get() {
+	public List<Person> get(@QueryParam("page") int page) {
 		
 		TypedQuery<Person> query = em.createNamedQuery("person.all", Person.class);
 		
-		String page = httpRequest.getParameter("page");
-		
-		if (isNullOrEmpty(page))  {
-			return query.getResultList();
-		}
-
-		int p = Integer.valueOf(page)-1;
+		page = page - 1;
 		
 		query.setMaxResults(3);
-		query.setFirstResult(p * 3);
+		query.setFirstResult(page * 3);
 		
 		return query.getResultList();
 	}
